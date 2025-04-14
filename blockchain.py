@@ -1,7 +1,8 @@
 import hashlib
 import time
 import os
-from flask import Flask, request, jsonify, render_template_string
+import csv
+from flask import Flask, request, jsonify, render_template_string, send_file
 
 # -------------------------
 # Blockchain Core Classes
@@ -93,6 +94,17 @@ class Blockchain:
             return True
         print(f"[!] Candidate not found: {old_name}")
         return False
+
+    def export_votes_to_csv(self):
+        """Export the vote tally to a CSV file"""
+        results = self.tally_votes()
+        filename = "vote_results.csv"
+        with open(filename, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Candidate", "Votes"])
+            for candidate, votes in results.items():
+                writer.writerow([candidate, votes])
+        return filename
 
 # -------------------------
 # Flask Web App
@@ -265,12 +277,20 @@ def results():
                     {% endfor %}
                 </tbody>
             </table>
-            <a href="/" class="btn btn-primary w-100 py-2">Back to Voting</a>
+            <div class="d-flex justify-content-between">
+                <a href="/" class="btn btn-primary">🏠 Home</a>
+                <a href="/export_csv" class="btn btn-success">📥 Export CSV</a>
+            </div>
         </div>
     </div>
     </body>
     </html>
     ''', results=results)
+
+@app.route('/export_csv')
+def export_csv():
+    filename = voting_chain.export_votes_to_csv()
+    return send_file(filename, as_attachment=True)
 
 @app.route('/chain')
 def chain():
@@ -311,18 +331,12 @@ def manage_candidates():
         <div class="card shadow-lg p-5 bg-white voting-card">
             <div class="text-center mb-4">
                 <h2 class="fw-bold">Manage Candidates</h2>
-                <p class="text-muted">Add or modify candidates for the election.</p>
+                <p class="text-muted">Add or modify candidates</p>
             </div>
-            <h4>Current Candidates</h4>
-            <ul>
-                {% for candidate in candidates %}
-                    <li>{{ candidate }}</li>
-                {% endfor %}
-            </ul>
             <form action="/candidates" method="post">
                 <div class="mb-3">
                     <label for="candidate_name" class="form-label">Candidate Name</label>
-                    <input type="text" class="form-control" name="candidate_name" required>
+                    <input type="text" class="form-control" name="candidate_name" placeholder="Enter candidate name" required>
                 </div>
                 <div class="mb-3">
                     <label for="action" class="form-label">Action</label>
@@ -332,16 +346,18 @@ def manage_candidates():
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label for="old_name" class="form-label">Old Name (for Modify action)</label>
-                    <input type="text" class="form-control" name="old_name">
+                    <label for="old_name" class="form-label">Old Candidate Name (for modification)</label>
+                    <input type="text" class="form-control" name="old_name" placeholder="Enter old candidate name">
                 </div>
                 <button type="submit" class="btn btn-primary w-100 py-2">Submit</button>
             </form>
+            <hr class="my-4">
+            <a href="/" class="btn btn-primary w-100">Back to Home</a>
         </div>
     </div>
     </body>
     </html>
-    ''', candidates=voting_chain.candidates)
+    ''')
 
 # -------------------------
 # Run the App (Render Compatible)
