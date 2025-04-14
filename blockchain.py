@@ -204,6 +204,7 @@ HTML_TEMPLATE = '''
             <a href="/candidates" class="btn btn-outline-secondary">📝 Manage Candidates</a>
         </div>
         <button id="toggle-theme" class="toggle-btn light-mode">Switch to Dark Mode</button>
+        <p class="text-center mt-4 text-muted">Project by Anindhith Sankanna and Ayush Kumar</p>
     </div>
 </div>
 
@@ -278,44 +279,36 @@ def results():
                 </tbody>
             </table>
             <div class="d-flex justify-content-between">
-                <a href="/" class="btn btn-primary">🏠 Home</a>
-                <a href="/export_csv" class="btn btn-success">📥 Export CSV</a>
+                <a href="/" class="btn btn-primary">Back to Home</a>
+                <a href="/download-csv" class="btn btn-outline-success">Download CSV</a>
             </div>
+            <p class="text-center mt-4 text-muted">Project by Anindhith Sankanna and Ayush Kumar</p>
         </div>
     </div>
     </body>
     </html>
     ''', results=results)
 
-@app.route('/export_csv')
-def export_csv():
+@app.route('/download-csv')
+def download_csv():
     filename = voting_chain.export_votes_to_csv()
     return send_file(filename, as_attachment=True)
-
-@app.route('/chain')
-def chain():
-    return jsonify([
-        {
-            'index': block.index,
-            'timestamp': block.timestamp,
-            'vote_data': block.vote_data,
-            'hash': block.hash,
-            'previous_hash': block.previous_hash
-        }
-        for block in voting_chain.chain
-    ])
 
 @app.route('/candidates', methods=['GET', 'POST'])
 def manage_candidates():
     if request.method == 'POST':
-        action = request.form.get('action')
-        candidate_name = request.form.get('candidate_name')
+        candidate_name = request.form['candidate_name']
+        action = request.form['action']
+        old_name = request.form['old_name']
 
         if action == 'add':
-            voting_chain.add_candidate(candidate_name)
+            success = voting_chain.add_candidate(candidate_name)
+            if success:
+                return "<h3>✅ Candidate added successfully!</h3><a href='/candidates'>Back</a>"
         elif action == 'modify':
-            old_name = request.form.get('old_name')
-            voting_chain.modify_candidate(old_name, candidate_name)
+            success = voting_chain.modify_candidate(old_name, candidate_name)
+            if success:
+                return "<h3>✅ Candidate modified successfully!</h3><a href='/candidates'>Back</a>"
 
     return render_template_string('''
     <!doctype html>
@@ -353,6 +346,7 @@ def manage_candidates():
             </form>
             <hr class="my-4">
             <a href="/" class="btn btn-primary w-100">Back to Home</a>
+            <p class="text-center mt-4 text-muted">Project by Anindhith Sankanna and Ayush Kumar</p>
         </div>
     </div>
     </body>
