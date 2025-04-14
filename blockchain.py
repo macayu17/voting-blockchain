@@ -86,36 +86,69 @@ HTML_TEMPLATE = '''
 <html lang="en">
 <head>
     <title>Blockchain Voting</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to right, #e0eafc, #cfdef3);
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .voting-card {
+            max-width: 600px;
+            margin: auto;
+            margin-top: 80px;
+            border-radius: 20px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+        .btn-outline-success, .btn-outline-secondary {
+            width: 48%;
+        }
+        .header-icon {
+            font-size: 2.5rem;
+        }
+        .form-select, .form-control {
+            border-radius: 12px;
+        }
+    </style>
 </head>
-<body class="bg-light">
-<div class="container mt-5">
-    <div class="card shadow-lg p-4 rounded-4">
-        <h2 class="text-center mb-4">🗳️ Blockchain Voting System</h2>
+<body>
+<div class="container">
+    <div class="card shadow-lg p-5 bg-white voting-card">
+        <div class="text-center mb-4">
+            <div class="header-icon mb-2">🗳️</div>
+            <h2 class="fw-bold">Blockchain Voting System</h2>
+            <p class="text-muted">Your vote is secure, anonymous, and immutable.</p>
+        </div>
         <form action="/vote" method="post">
             <div class="mb-3">
                 <label for="voter_id" class="form-label">Voter ID</label>
-                <input type="text" class="form-control" name="voter_id" required>
+                <input type="text" class="form-control" name="voter_id" placeholder="Enter your voter ID" required>
             </div>
             <div class="mb-3">
                 <label for="vote" class="form-label">Select Candidate</label>
                 <select class="form-select" name="vote" required>
+                    <option value="" disabled selected>Select a candidate</option>
                     <option value="Candidate A">Candidate A</option>
                     <option value="Candidate B">Candidate B</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Submit Vote</button>
+            <button type="submit" class="btn btn-primary w-100 py-2">Submit Vote</button>
         </form>
-        <hr>
-        <div class="text-center">
-            <a href="/results" class="btn btn-outline-success mt-2">View Results</a>
-            <a href="/chain" class="btn btn-outline-secondary mt-2">View Blockchain</a>
+        <hr class="my-4">
+        <div class="d-flex justify-content-between">
+            <a href="/results" class="btn btn-outline-success">📊 View Results</a>
+            <a href="/chain" class="btn btn-outline-secondary">🔗 View Blockchain</a>
         </div>
     </div>
 </div>
 </body>
 </html>
 '''
+
 
 @app.route('/')
 def home():
