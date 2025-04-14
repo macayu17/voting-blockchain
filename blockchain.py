@@ -1,5 +1,6 @@
 import hashlib
 import time
+import os
 from flask import Flask, request, jsonify, render_template_string
 
 # -------------------------
@@ -148,8 +149,9 @@ def chain():
     ])
 
 # -------------------------
-# Run the App
+# Run the App (Render Compatible)
 # -------------------------
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
