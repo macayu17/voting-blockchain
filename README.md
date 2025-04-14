@@ -36,7 +36,7 @@ This is a **Blockchain-based Voting System** that ensures secure, anonymous, and
    pip install -r requirements.txt
 3. Run the application:
 
-  ```bash
-  python app.py
-  ```
+    ```bash
+    python app.py
+    ```
 By default, the app will run on http://127.0.0.1:5000.
