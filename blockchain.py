@@ -113,12 +113,21 @@ HTML_TEMPLATE = '''
         body {
             background: linear-gradient(to right, #e0eafc, #cfdef3);
             font-family: 'Segoe UI', sans-serif;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+        body.dark-mode {
+            background: #121212;
+            color: #f0f0f0;
         }
         .voting-card {
             max-width: 600px;
             margin: auto;
             margin-top: 80px;
             border-radius: 20px;
+            transition: background-color 0.5s ease;
+        }
+        .voting-card.dark-mode {
+            background-color: #1f1f1f;
         }
         .btn-primary {
             background-color: #007bff;
@@ -135,6 +144,20 @@ HTML_TEMPLATE = '''
         }
         .results-table th, .results-table td {
             text-align: center;
+        }
+        .toggle-btn {
+            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+        .toggle-btn.light-mode {
+            background-color: #fff;
+            color: #000;
+        }
+        .toggle-btn.dark-mode {
+            background-color: #333;
+            color: #fff;
         }
     </style>
 </head>
@@ -168,8 +191,23 @@ HTML_TEMPLATE = '''
             <a href="/chain" class="btn btn-outline-secondary">🔗 View Blockchain</a>
             <a href="/candidates" class="btn btn-outline-secondary">📝 Manage Candidates</a>
         </div>
+        <button id="toggle-theme" class="toggle-btn light-mode">Switch to Dark Mode</button>
     </div>
 </div>
+
+<script>
+    const toggleThemeBtn = document.getElementById('toggle-theme');
+    const body = document.body;
+    const votingCard = document.querySelector('.voting-card');
+
+    toggleThemeBtn.addEventListener('click', () => {
+        body.classList.toggle('dark-mode');
+        votingCard.classList.toggle('dark-mode');
+        toggleThemeBtn.classList.toggle('dark-mode');
+        toggleThemeBtn.classList.toggle('light-mode');
+        toggleThemeBtn.textContent = body.classList.contains('dark-mode') ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+    });
+</script>
 </body>
 </html>
 '''
