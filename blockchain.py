@@ -6,7 +6,7 @@ import os
 import datetime
 import threading
 import random
-import requests  # Add this import for consensus
+import requests  # Add this import for consensus of nodes
 
 # -------------------------
 # Enhanced Blockchain Core Classes
