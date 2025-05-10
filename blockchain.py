@@ -143,6 +143,10 @@ voting_chain = Blockchain()
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+# Add these constants near the top of your file after imports
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "1234"
+
 # -------------------------
 # CSS and Templates
 # -------------------------
@@ -975,20 +979,41 @@ def verify_chain():
     is_valid = voting_chain.is_chain_valid()
     return jsonify({'valid': is_valid})
 
-# Update the candidates management page with better UI and feedback
+# Update the candidates management page with authentication
 @app.route('/candidates', methods=['GET', 'POST'])
 def manage_candidates():
     message = None
     
-    if request.method == 'POST':
+    # Check if already authenticated in session
+    authenticated = session.get('admin_authenticated', False)
+    
+    # Handle login form submission
+    if request.method == 'POST' and 'admin_login' in request.form:
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # Simple hardcoded authentication
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['admin_authenticated'] = True
+            authenticated = True
+            message = {'type': 'success', 'text': 'Login successful!', 'icon': 'check-circle'}
+        else:
+            message = {'type': 'danger', 'text': 'Invalid username or password!', 'icon': 'exclamation-circle'}
+    
+    # Handle logout
+    if 'logout' in request.args:
+        session.pop('admin_authenticated', None)
+        return redirect(url_for('manage_candidates'))
+    
+    # Handle candidate management actions if authenticated
+    if authenticated and request.method == 'POST' and 'action' in request.form:
         action = request.form.get('action')
         
         if action == 'add':
             candidate_name = request.form.get('candidate_name')
             if candidate_name and candidate_name.strip():
                 if voting_chain.add_candidate(candidate_name.strip()):
-                    session['messages'] = [{'type': 'success', 'icon': 'check-circle', 'text': f'Candidate "{candidate_name}" added successfully!'}]
-                    return redirect(url_for('home'))
+                    message = {'type': 'success', 'text': f'Candidate "{candidate_name}" added successfully!', 'icon': 'check-circle'}
                 else:
                     message = {'type': 'warning', 'text': f'Candidate "{candidate_name}" already exists!', 'icon': 'exclamation-triangle'}
             else:
@@ -1004,11 +1029,86 @@ def manage_candidates():
                 message = {'type': 'danger', 'text': 'New candidate name cannot be empty!', 'icon': 'exclamation-circle'}
             else:
                 if voting_chain.modify_candidate(old_name, new_name.strip()):
-                    session['messages'] = [{'type': 'success', 'icon': 'check-circle', 'text': f'Candidate renamed from "{old_name}" to "{new_name}" successfully!'}]
-                    return redirect(url_for('home'))
+                    message = {'type': 'success', 'text': f'Candidate renamed from "{old_name}" to "{new_name}" successfully!', 'icon': 'check-circle'}
                 else:
                     message = {'type': 'danger', 'text': f'Candidate "{old_name}" not found!', 'icon': 'exclamation-circle'}
     
+    # Show login page if not authenticated
+    if not authenticated:
+        return render_template_string('''
+        <!doctype html>
+        <html lang="en">
+        <head>
+            <title>Admin Login</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+            <style>
+                ''' + BASE_CSS + '''
+                .login-card {
+                    max-width: 450px;
+                    margin: auto;
+                    margin-top: 100px;
+                }
+                .login-header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                }
+                .login-form {
+                    padding: 20px;
+                }
+            </style>
+        </head>
+        <body>
+        ''' + NAVBAR_TEMPLATE.replace('{{ active_page }}', 'candidates') + '''
+        
+        <div class="container">
+            <div class="card shadow-lg login-card">
+                <div class="card-body login-form">
+                    <div class="login-header">
+                        <div class="header-icon"><i class="fas fa-lock"></i></div>
+                        <h2 class="fw-bold">Admin Login</h2>
+                        <p class="text-muted">Login to manage candidates</p>
+                    </div>
+                    
+                    {% if message %}
+                    <div class="alert alert-{{ message.type }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ message.icon }} me-2"></i> {{ message.text }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <form action="/candidates" method="post">
+                        <input type="hidden" name="admin_login" value="1">
+                        <div class="mb-3">
+                            <label for="username" class="form-label"><i class="fas fa-user me-2"></i>Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label"><i class="fas fa-key me-2"></i>Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 mt-3">
+                            <i class="fas fa-sign-in-alt me-2"></i> Login
+                        </button>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <a href="/" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        </body>
+        </html>
+        ''', message=message)
+    
+    # Show candidate management page if authenticated
     return render_template_string('''
     <!doctype html>
     <html lang="en">
@@ -1035,53 +1135,28 @@ def manage_candidates():
                 justify-content: space-between;
                 align-items: center;
             }
-            .dark-mode .candidate-item {
-                background-color: #2a2a2a;
-            }
-            .candidate-name {
-                font-weight: bold;
-                color: #4776E6;
-            }
-            .loading-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0, 0, 0, 0.5);
+            .admin-header {
                 display: flex;
-                justify-content: center;
+                justify-content: space-between;
                 align-items: center;
-                z-index: 9999;
-                visibility: hidden;
-                opacity: 0;
-                transition: visibility 0s, opacity 0.3s;
-            }
-            .loading-spinner {
-                width: 50px;
-                height: 50px;
-                border: 5px solid #f3f3f3;
-                border-top: 5px solid #4776E6;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-            }
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
+                margin-bottom: 20px;
             }
         </style>
     </head>
     <body>
-    
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-spinner"></div>
-    </div>
+    ''' + NAVBAR_TEMPLATE.replace('{{ active_page }}', 'candidates') + '''
     
     <div class="container candidates-card">
-        <div class="text-center mb-4">
-            <div class="header-icon"><i class="fas fa-users-cog"></i></div>
-            <h2 class="fw-bold">Manage Candidates</h2>
-            <p class="text-muted">Add or modify candidates for the election</p>
+        <div class="admin-header">
+            <div>
+                <h2 class="fw-bold">Manage Candidates</h2>
+                <p class="text-muted">Add or modify candidates for the election</p>
+            </div>
+            <div>
+                <a href="/candidates?logout=1" class="btn btn-outline-danger">
+                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                </a>
+            </div>
         </div>
         
         {% if message %}
@@ -1129,16 +1204,9 @@ def manage_candidates():
                 <button type="submit" class="btn btn-primary w-100 py-2">Submit</button>
             </form>
         </div>
-        
-        <div class="mt-4">
-            <a href="/" class="btn btn-outline-primary w-100">Back to Home</a>
-        </div>
-        
-        <p class="text-center mt-4 text-muted">Project by Anindhith Sankanna and Ayush Kumar</p>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    ''' + DARK_MODE_JS + '''
     <script>
         // Toggle old name field based on action selection
         document.getElementById('actionSelect').addEventListener('change', function() {
@@ -1153,23 +1221,10 @@ def manage_candidates():
                 newNameLabel.textContent = 'Candidate Name';
             }
         });
-        
-        // Show loading overlay when form is submitted
-        document.getElementById('candidateForm').addEventListener('submit', function() {
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.style.visibility = 'visible';
-            loadingOverlay.style.opacity = '1';
-            
-            // Set a timeout to hide the overlay if it takes too long
-            setTimeout(function() {
-                loadingOverlay.style.visibility = 'hidden';
-                loadingOverlay.style.opacity = '0';
-            }, 5000); // 5 seconds max
-        });
     </script>
     </body>
     </html>
-    ''', candidates=voting_chain.candidates)
+    ''', candidates=voting_chain.candidates, message=message)
 
 # Add error handling for 404 and 500 errors
 @app.errorhandler(404)
